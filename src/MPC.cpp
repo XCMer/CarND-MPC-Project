@@ -41,7 +41,7 @@ size_t a_start = delta_start + N - 1;
 
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 100;
+double ref_v = 100 * 0.44704; // 100 mph in m/s
 
 class FG_eval {
 public:
@@ -110,8 +110,8 @@ public:
             AD<double> delta0 = vars[delta_start + t - 1];
             AD<double> a0 = vars[a_start + t - 1];
 
-            AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[1] * pow(x0, 2) + coeffs[2] * pow(x0, 3);
-            AD<double> psides0 = CppAD::atan(3*coeffs[3]*pow(x0, 2) + 2*coeffs[2]*x0 + coeffs[1]);
+            AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[1] * CppAD::pow(x0, 2) + coeffs[2] * CppAD::pow(x0, 3);
+            AD<double> psides0 = CppAD::atan(3*coeffs[3]*CppAD::pow(x0, 2) + 2*coeffs[2]*x0 + coeffs[1]);
 
             // x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
             // y_[t+1] = y[t] + v[t] * sin(psi[t]) * dt
@@ -121,12 +121,12 @@ public:
             // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
             fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
             fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
-            fg[1 + psi_start + t] = psi1 - (psi0 - v0 * delta0 / Lf * dt);
+            fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
             fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
             fg[1 + cte_start + t] =
                     cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
             fg[1 + epsi_start + t] =
-                    epsi1 - ((psi0 - psides0) - v0 * delta0 / Lf * dt);
+                    epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
         }
     }
 };
@@ -169,12 +169,12 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     for (int i = 0; i < n_vars; i++) {
         vars[i] = 0;
     }
-//    vars[x_start] = x;
-//    vars[y_start] = y;
-//    vars[psi_start] = psi;
-//    vars[v_start] = v;
-//    vars[cte_start] = cte;
-//    vars[epsi_start] = epsi;
+    vars[x_start] = x;
+    vars[y_start] = y;
+    vars[psi_start] = psi;
+    vars[v_start] = v;
+    vars[cte_start] = cte;
+    vars[epsi_start] = epsi;
 
     Dvector vars_lowerbound(n_vars);
     Dvector vars_upperbound(n_vars);

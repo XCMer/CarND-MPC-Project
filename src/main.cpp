@@ -100,26 +100,19 @@ int main() {
                     // Car's angle
                     double psi = j[1]["psi"];
 
-                    // Car's speed
-                    double v = j[1]["speed"];
+                    // Car's speed in m/s
+                    double v = (double)j[1]["speed"] * 0.44704;
 
-                    // Shift the co-ordinate system. This is going to make our
-                    // subsequent expressions simple, since px,py,psi would all
-                    // be 0 in this new shifted system.
+                    // Co-ord transform
+                    Eigen::VectorXd ptsx_transform = Eigen::VectorXd(ptsx.size());
+                    Eigen::VectorXd ptsy_transform = Eigen::VectorXd(ptsy.size());
                     for (int i = 0; i < ptsx.size(); i++) {
                         double shift_x = ptsx[i] - px;
                         double shift_y = ptsy[i] - py;
 
-                        ptsx[i] = (shift_x * cos(-psi) - shift_y * sin(-psi));
-                        ptsy[i] = (shift_x * sin(-psi) + shift_y * cos(-psi));
+                        ptsx_transform[i] = shift_x * cos(psi) + shift_y * sin(psi);
+                        ptsy_transform[i] = -shift_x * sin(psi) + shift_y * cos(psi);
                     }
-
-                    // Conversion of VectorXd
-                    double *ptrx = &ptsx[0];
-                    Eigen::Map<Eigen::VectorXd> ptsx_transform(ptrx, 6);
-
-                    double *ptry = &ptsy[0];
-                    Eigen::Map<Eigen::VectorXd> ptsy_transform(ptry, 6);
 
                     // Fit a 3rd order polynomial
                     auto coeffs = polyfit(ptsx_transform, ptsy_transform, 3);
@@ -152,7 +145,7 @@ int main() {
                     json msgJson;
                     // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
                     // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-                    msgJson["steering_angle"] = steer_value;
+                    msgJson["steering_angle"] = -steer_value;
                     msgJson["throttle"] = throttle_value;
 
                     //Display the MPC predicted trajectory
@@ -179,7 +172,7 @@ int main() {
                     int num_points = 25;
                     for (int i = 1; i < num_points; i++) {
                         next_x_vals.push_back(poly_inc * i);
-                        next_x_vals.push_back(polyeval(coeffs, poly_inc * i));
+                        next_y_vals.push_back(polyeval(coeffs, poly_inc * i));
                     }
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
@@ -200,7 +193,7 @@ int main() {
                     //
                     // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
                     // SUBMITTING.
-                    this_thread::sleep_for(chrono::milliseconds(100));
+//                    this_thread::sleep_for(chrono::milliseconds(100));
                     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
                 }
             } else {
