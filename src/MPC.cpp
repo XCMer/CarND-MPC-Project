@@ -41,7 +41,7 @@ size_t a_start = delta_start + N - 1;
 
 double ref_cte = 0;
 double ref_epsi = 0;
-double ref_v = 100 * 0.44704; // 100 mph in m/s
+double ref_v = 40 * 0.44704; // mph in m/s
 
 class FG_eval {
 public:
@@ -64,20 +64,20 @@ public:
         // while ref_v is a value that we want the car to maintain so that
         // it does not just stop in the middle
         for (int t = 0; t < N; t++) {
-            fg[0] += 2000 * CppAD::pow(vars[cte_start + t] - ref_cte, 2);
-            fg[0] += 2000 * CppAD::pow(vars[epsi_start + t] - ref_epsi, 2);
-            fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
+            fg[0] += 100 * CppAD::pow(vars[cte_start + t] - ref_cte, 2);
+            fg[0] += 5000 * CppAD::pow(vars[epsi_start + t] - ref_epsi, 2);
+            fg[0] += 1000 * CppAD::pow(vars[v_start + t] - ref_v, 2);
         }
 
         // Don't use actuators a lot
         for (int t = 0; t < N - 1; t++) {
-            fg[0] += 5 * CppAD::pow(vars[delta_start + t], 2);
-            fg[0] += 5 * CppAD::pow(vars[a_start + t], 2);
+            fg[0] += 10000 * CppAD::pow(vars[delta_start + t], 2);
+            fg[0] += 100 * CppAD::pow(vars[a_start + t], 2);
         }
 
         // Actuators should not drastically change between timestamps
         for (int t = 0; t < N - 2; t++) {
-            fg[0] += 200 * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+            fg[0] += 10000 * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
             fg[0] += 10 * CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
         }
 
@@ -113,12 +113,6 @@ public:
             AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[1] * CppAD::pow(x0, 2) + coeffs[2] * CppAD::pow(x0, 3);
             AD<double> psides0 = CppAD::atan(3*coeffs[3]*CppAD::pow(x0, 2) + 2*coeffs[2]*x0 + coeffs[1]);
 
-            // x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
-            // y_[t+1] = y[t] + v[t] * sin(psi[t]) * dt
-            // psi_[t+1] = psi[t] + v[t] / Lf * delta[t] * dt
-            // v_[t+1] = v[t] + a[t] * dt
-            // cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
-            // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
             fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
             fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
             fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
