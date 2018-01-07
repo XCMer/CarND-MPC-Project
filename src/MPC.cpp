@@ -64,9 +64,9 @@ public:
         // while ref_v is a value that we want the car to maintain so that
         // it does not just stop in the middle
         for (int t = 0; t < N; t++) {
-            fg[0] += 100 * CppAD::pow(vars[cte_start + t] - ref_cte, 2);
+            fg[0] += 1000 * CppAD::pow(vars[cte_start + t] - ref_cte, 2);
             fg[0] += 5000 * CppAD::pow(vars[epsi_start + t] - ref_epsi, 2);
-            fg[0] += 1000 * CppAD::pow(vars[v_start + t] - ref_v, 2);
+            fg[0] += 100 * CppAD::pow(vars[v_start + t] - ref_v, 2);
         }
 
         // Don't use actuators a lot
@@ -78,7 +78,7 @@ public:
         // Actuators should not drastically change between timestamps
         for (int t = 0; t < N - 2; t++) {
             fg[0] += 10000 * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
-            fg[0] += 10 * CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
+            fg[0] += 1000 * CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
         }
 
         // Constraints
@@ -110,8 +110,8 @@ public:
             AD<double> delta0 = vars[delta_start + t - 1];
             AD<double> a0 = vars[a_start + t - 1];
 
-            AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[1] * CppAD::pow(x0, 2) + coeffs[2] * CppAD::pow(x0, 3);
-            AD<double> psides0 = CppAD::atan(3*coeffs[3]*CppAD::pow(x0, 2) + 2*coeffs[2]*x0 + coeffs[1]);
+            AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * CppAD::pow(x0, 2) + coeffs[3] * CppAD::pow(x0, 3);
+            AD<double> psides0 = CppAD::atan(3.0*coeffs[3]*CppAD::pow(x0, 2) + 2.0*coeffs[2]*x0 + coeffs[1]);
 
             fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
             fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);

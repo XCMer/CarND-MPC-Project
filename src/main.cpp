@@ -132,14 +132,26 @@ int main() {
                     double throttle_value = j[1]["throttle"];
 
                     // Initialize state
-                    // Positions are 0
+                    // This is where we account for the delay
+                    // Instead of initializing the state with 0,0,0,v,cte,epsi,
+                    // we find out what the state would be after the 0.1s delay
+                    // and use that instead
                     Eigen::VectorXd state(6);
+//                    state << 0, 0, 0, v, cte, epsi;
 
-                    state << 0, 0, 0, v, cte, epsi;
+                    double delay = 0.1; // In seconds
+                    double new_x = v * delay;
+                    double new_y = 0;
+                    double new_psi = -v * steer_value / 2.67 * delay;
+                    double new_v = v + throttle_value * delay;
+                    double new_cte = cte + v * sin(epsi) * delay;
+                    double new_epsi = epsi + new_psi;
+
+                    state << new_x, new_y, new_psi, new_v, new_cte, new_epsi;
 
                     auto vars = mpc.Solve(state, coeffs);
 
-                    steer_value = vars[0] / (deg2rad(25) * 2.67);
+                    steer_value = vars[0] / deg2rad(25);
                     throttle_value = vars[1];
 
                     json msgJson;
@@ -193,7 +205,7 @@ int main() {
                     //
                     // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
                     // SUBMITTING.
-//                    this_thread::sleep_for(chrono::milliseconds(100));
+                    this_thread::sleep_for(chrono::milliseconds(100));
                     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
                 }
             } else {
